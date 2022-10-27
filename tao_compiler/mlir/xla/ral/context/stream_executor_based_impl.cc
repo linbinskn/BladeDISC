@@ -1830,7 +1830,7 @@ void ral_conv_biasadd_relu(
     bladnn::Dtype dtype = toBlaDNNDtype<T>();
     bool ret = false;
 
-    // TAO_VLOG(0) << " n: " << n << " ih: " << ih << " iw: " << iw << " ic: " << ic << " ko: " << ko << " kh: " << kh << " kw: " << kw << " ki: " << ki << " oh: " << oh << " ow: " << ow << " oc: " << oc << " pad_h: " << pad_h << " pad_w: " << pad_w << " stride_h: " << stride_h << " stride_w: " << stride_w << " dilation_h: " << dilation_h << " dilation_w: " << dilation_w;
+    TAO_VLOG(0) << " n: " << n << " ih: " << ih << " iw: " << iw << " ic: " << ic << " ko: " << ko << " kh: " << kh << " kw: " << kw << " ki: " << ki << " oh: " << oh << " ow: " << ow << " oc: " << oc << " pad_h: " << pad_h << " pad_w: " << pad_w << " stride_h: " << stride_h << " stride_w: " << stride_w << " dilation_h: " << dilation_h << " dilation_w: " << dilation_w;
 
     ret = bladnn::conv2d(s, dtype, dtype, conv_kind, data_layout, kernel_layout,
                          n, ih, iw, ic, ko, kh, kw, oh, ow, pad_h, pad_w,
