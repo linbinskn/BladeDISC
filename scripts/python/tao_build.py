@@ -462,6 +462,7 @@ def test_tao_compiler(root, args):
 
             flag = test_tao_compiler_add_flags_platform_alibaba(root, args, flag)
 
+            """
             mlir_tests_list = [
                 TARGET_DISC_IR_TEST,
                 TARGET_DISC_TRANSFORMS_TEST,
@@ -471,6 +472,13 @@ def test_tao_compiler(root, args):
               + TARGET_DISC_PDLL_TESTS \
               + TARGET_DISC_CUDA_SOURCE_TESTS \
               + TARGET_DISC_TRANSFORM_DIALECT_TESTS
+            """
+
+            TARGET_DISC_CODEGEN = "//tensorflow/compiler/mlir/disc/tests/regression:epilogue_fusion.cc.test"
+            TARGET_DISC_INT8_CODEGEN = "//tensorflow/compiler/mlir/disc/tests/tensorflow_ops:quantized_matmul.cc.test"
+
+            mlir_tests_list = [TARGET_DISC_INT8_CODEGEN]
+
             MLIR_TESTS = " ".join(mlir_tests_list)
             bazel_test(MLIR_TESTS, flag=flag)
             flag += " --action_env=BRIDGE_ENABLE_TAO=true "

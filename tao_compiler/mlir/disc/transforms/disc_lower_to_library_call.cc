@@ -51,6 +51,7 @@ limitations under the License.
 #include "tensorflow/compiler/mlir/disc/transforms/fusion_utils.h"
 #include "tensorflow/compiler/mlir/disc/transforms/placement_utils.h"
 #include "tensorflow/compiler/mlir/disc/transforms/rewriters.h"
+#include "tensorflow/core/util/env_var.h"
 
 namespace mlir {
 namespace disc_ral {
@@ -868,6 +869,10 @@ struct DiscLowerToLibraryCallPass
     if (enableTransposeLibraryCall())
       patterns.insert<TransposeConverter>(context);
 
+    // Enable stitch by default.
+    bool enable_quant_codegen = false;
+    tensorflow::ReadBoolFromEnvVar("DISC_ENABLE_COMPUTE_INTENSIVE_FUSE", false, &enable_quant_codegen);
+
     // GPU copy related ops
     patterns.insert<GpuCopyOpConvertor<H2DOp>>(context, "h2d");
     patterns.insert<GpuCopyOpConvertor<D2HOp>>(context, "d2h");
@@ -876,8 +881,11 @@ struct DiscLowerToLibraryCallPass
     patterns.insert<DynamicConvLikeConverter<QuantizedDynamicConvOp>>(
         context, "ral_qconv");
     patterns.insert<DotGeneralLikeConverter<DotGeneralOp>>(context, "ral_gemm");
-    patterns.insert<DotGeneralLikeConverter<QuantizedDotGeneralOp>>(
+    if(enable_quant_codegen == false) {
+      patterns.insert<DotGeneralLikeConverter<QuantizedDotGeneralOp>>(
         context, "ral_qgemm");
+    }
+    
 
     // custom call related
     patterns.insert<CustomCallV2OpConvertor>(context, gpu_enabled_);
