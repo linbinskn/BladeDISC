@@ -136,9 +136,6 @@ class BazelBuild(TorchBladeBuild):
             else:
                 self.configs += ["--config=torch_x86"]
 
-        self.configs += ["--config=blade_gemm"]
-        self.configs += ["--config=platform_alibaba"]
-
         if self.cuda_available and float(self.cuda_version) >= 11.0 and self.blade_gemm:
             self.configs += ["--config=blade_gemm"]
 

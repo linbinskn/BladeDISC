@@ -126,12 +126,6 @@ class TorchBladeBuild:
             f.write(
                 "GLIBCXX_USE_CXX11_ABI = {}\n".format(repr(self.GLIBCXX_USE_CXX11_ABI))
             )
-            f.write(
-                "blade_gemm = {}\n".format(repr(self.blade_gemm))
-            )
-            f.write(
-                "platform_alibaba = {}\n".format(repr(self.blade_gemm))
-            )
 
         with open(version_path, "r") as f:
             print("".join(f.readlines()))
