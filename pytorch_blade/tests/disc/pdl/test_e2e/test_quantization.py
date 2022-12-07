@@ -38,11 +38,6 @@ class CPUDiscPdlQuantizationE2ETestCase(CPUDiscPdlQuantizationTestCase):
 class GPUDiscPdlQuantizationE2ETestCase(GPUDiscPdlQuantizationTestCase):
     def setUp(self):
         super().setUp()
-        import os
-        bladnn_on = os.getenv('BLADE_GEMM_TUNE_JIT')
-        if bladnn_on != 'true' and bladnn_on != '1':
-            self.skipTest("Quantization cuda test case only works on gpu"
-                          " with bladnn library")
 
 
 @unittest.skipIf(TORCH_VERSION < (1, 9),
@@ -279,8 +274,8 @@ class TestGPULiner(GPUDiscPdlQuantizationE2ETestCase):
                 self.weight_quant_max = 127
                 self.activation_quant_min = -128
                 self.activation_quant_max = 127
-                self.register_buffer("weight", torch.randn(512, 512))
-                self.register_buffer("bias", torch.randn(512))
+                self.register_buffer("weight", torch.randn(256, 512))
+                self.register_buffer("bias", torch.randn(256))
                 self.bias_scale = 0.2
                 self.bias_zero_point = 0
                 # bias i8 quantization
@@ -304,7 +299,7 @@ class TestGPULiner(GPUDiscPdlQuantizationE2ETestCase):
                 )
                 return x
         model = Model().eval().to(self.device)
-        inp = torch.randn(8, 512, 512).to(self.device)
+        inp = torch.randn(8, 128, 512).to(self.device)
         traced_model = torch.jit.trace(model, inp)
         pdll_files = [
             os.path.join(self.common_pdll_dir, "fake_quant.pdll"),
