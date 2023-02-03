@@ -1,0 +1,102 @@
+Pattern TorchBertAttentionTransFP16NoCastGraph {
+    /// match phase: define the pattern
+    let transpose_op = op<torch.aten.transpose.int>(
+        k: Value,
+        int1: Value,
+        int2: Value
+    );
+    let matmul_qk_op = op<torch.aten.matmul>(
+        q: Value,
+        transpose_op.0
+    );
+    let div_qk_op = op<torch.aten.div.Tensor>(
+        matmul_qk_op.0,
+        alpha: Value
+    );
+    let add_qk_op = op<torch.aten.add.Tensor>(
+        div_qk_op.0,
+        attention_mask: Value,
+        int_1: Value
+    );
+    let softmax_op = op<torch.aten.softmax.int>(
+        add_qk_op.0,
+        s_dim: Value,
+        s_dtype: Value
+     )-> (softmax_type: Type);
+    let matmul_qkv_op = op<torch.aten.matmul>(
+        softmax_op.0,
+        v: Value
+    );
+    let permute_o_op = op<torch.aten.permute>(
+        matmul_qkv_op.0,
+        permute_o_list: Value
+    );
+    let contiguous_o_op = op<torch.aten.contiguous>(
+        permute_o_op.0,
+        int_0: Value
+    );
+    let view_o_op = op<torch.aten.view>(
+        contiguous_o_op.0,
+        view_o_list: Value
+    );
+    CheckTorchTensorElemType(q, attr<"\"f16\"">);
+    CheckTorchTensorElemType(k, attr<"\"f16\"">);
+    CheckTorchTensorElemType(v, attr<"\"f16\"">);
+    /// rewrite phase
+    rewrite view_o_op with {
+    
+    // batch
+    let dim_0 = op<torch.constant.int> {value = attr<"0">} -> (type<"!torch.int">);
+    let mask_size_0 = op<torch.aten.size.int>(
+        q,
+        dim_0
+    ) -> (type<"!torch.int">);
+    // num_head
+    let dim_1 = op<torch.constant.int> {value = attr<"1">} -> (type<"!torch.int">);
+    let mask_size_1 = op<torch.aten.size.int>(
+        q,
+        dim_1
+    ) -> (type<"!torch.int">);
+    // seq_len_q
+    let dim_2 = op<torch.constant.int> {value = attr<"2">} -> (type<"!torch.int">);
+    let mask_size_2 = op<torch.aten.size.int>(
+        q,
+        dim_2
+    ) -> (type<"!torch.int">);
+    // seq_len_v
+    let mask_size_3 = op<torch.aten.size.int>(
+        v,
+        dim_2
+    ) -> (type<"!torch.int">);
+
+    let broadcast_list = op<torch.prim.ListConstruct>(
+        mask_size_0,
+        mask_size_1,
+        mask_size_2,
+        mask_size_3
+    ) -> (type<"!torch.list<int>">);
+
+    let attn_mask_broadcast_op = op<torch.aten.broadcast_to>(
+        attention_mask,
+        broadcast_list.0
+    ) -> (softmax_type);
+
+    /// 1. create custom call op
+    let inputs = PackValue_4(attr<"\"in\"">, q, k, v, attn_mask_broadcast_op.0);
+    let outputs = PackValue_1(attr<"\"out\"">, view_o_op.0);
+    let infos = CreateTorchCustomCall(attr<"\"op\"">, inputs, outputs);
+    /// 2. set attrs that are used by bladedisc.
+    SetAttr(infos.op, attr<"\"call_target_name\"">, attr<"\"ral_pdll_mem_eff_attention_output_transpose_mask\"">);
+    SetAttr(infos.op, attr<"\"input_placements\"">, attr<"\"d,d,d,d\"">);
+    SetAttr(infos.op, attr<"\"output_placements\"">, attr<"\"d\"">);
+    SetAttr(infos.op, attr<"\"device\"">, attr<"\"d\"">);
+    SetAttr(infos.op, attr<"\"input_layouts\"">, attr<"\"*,*,*,*\"">);
+    SetAttr(infos.op, attr<"\"output_layouts\"">, attr<"\"*\"">);
+    SetAttr(infos.op, attr<"\"expected_input_layouts\"">, attr<"\"*,*,*,*\"">);
+    SetAttr(infos.op, attr<"\"expected_output_layouts\"">, attr<"\"*\"">);
+    let alpha_attr = ConvertTorchConstantFloatToFloatAttr(alpha);
+    SetCustomAttr(infos.op, attr<"\"alpha\"">, alpha_attr);
+    let rs = UnpackValue_1(infos.new_outputs);
+    replace view_o_op with rs;
+    };
+}
